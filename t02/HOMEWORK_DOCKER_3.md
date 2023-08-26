@@ -24,12 +24,8 @@ On the general steps to do it:
 
 Remember, the exact commands and steps can vary depending on the specifics of the repository and the application. Always refer to the README or other provided documentation for the most accurate instructions.
 
-### A Case
-Example for https://github.com/django-cms/django-cms-quickstart
-
-Start docker
-
-
+### A Case to practice
+content management system https://github.com/django-cms/django-cms-quickstart
 
 
 #### Reason why fail with git@

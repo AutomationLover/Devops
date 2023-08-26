@@ -27,6 +27,10 @@ Remember, the exact commands and steps can vary depending on the specifics of th
 ### A Case to practice
 content management system https://github.com/django-cms/django-cms-quickstart
 
+It may fail on 
+```
+git clone git@github.com:django-cms/django-cms-quickstart.git
+```
 
 #### Reason why fail with git@
 Notes

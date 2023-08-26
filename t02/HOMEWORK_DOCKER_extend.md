@@ -1,5 +1,5 @@
 ---
-tags: [dns, cnd, devops11, homework] 
+tags: [docker, devops11, homework] 
 ---
 
 

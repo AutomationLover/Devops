@@ -73,7 +73,7 @@ resource "null_resource" "example" {
 ```
 
 Some update
-```
+```hcl
 variable "regions" {
   description = "Regions map"
   type        = map(any)

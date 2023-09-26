@@ -1,6 +1,4 @@
-Here is your step-by-step guide in Markdown format:
 
-```markdown
 # Setting up AWS CLI and Creating a CLI Account in AWS on Ubuntu
 
 ## Prerequisites:

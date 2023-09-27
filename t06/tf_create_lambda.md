@@ -1,6 +1,6 @@
 Here is some answer to https://github.com/JiangRenDevOps/DevOpsNotes/blob/master/WK6_Terraform/hands_on/4%20-%20Homework.md
 
-Sure, I'll guide you through the process step by step.
+Same code saved in repo https://github.com/AutomationLover/tflambda
 
 First, let's begin with the folder structure:
 ```
@@ -16,20 +16,13 @@ terraform_lambda/
 
 Now let's go through each file:
 
-0. `lambda_function/helloword.py`: This is a simple Python lambda function.
+1. `lambda_function/helloword.py`: This is a simple Python lambda function.
     ```python
     def lambda_handler(event, context):
         print("Hello, World!")
     ```
 
 
-1. `variables.tf`: Add a new variable for the bucket name.
-```markdown
-variable "bucket_name" {
-  description = "S3 bucket name"
-  default     = "my-unique-bucket-name"
-}
-```
 
 2. `main.tf`: Use the variable in your S3 bucket and policy definition.
 
@@ -109,12 +102,17 @@ resource "aws_iam_role_policy_attachment" "attach_s3_policy" {
 }
 ```
 
+
 3. `variables.tf`: This file will define any variables we are going to use.
 
     ```markdown
     variable "region" {
       description = "AWS region"
       default     = "us-west-2"
+    }
+    variable "bucket_name" {
+      description = "S3 bucket name"
+      default     = "my-unique-bucket-name"
     }
     ```
 

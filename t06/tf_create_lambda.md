@@ -1,152 +1,159 @@
 Here is some answer to https://github.com/JiangRenDevOps/DevOpsNotes/blob/master/WK6_Terraform/hands_on/4%20-%20Homework.md
 
+Sure, I'll guide you through the process step by step.
 
-**Please note:** Before starting, make sure you have installed Terraform and AWS CLI on your local machine. 
-
-**Step 1:** Firstly, we will create the project structure. Your folder structure might look something like this:
-
+First, let's begin with the folder structure:
 ```
-/terraform-lambda-example
-  /lambda-src
-    - hello_world.py
-  - main.tf
-  - variables.tf
-  - outputs.tf
-  - lambda.tf
-  - api_gateway.tf
-  - s3.tf
+terraform_lambda/
+│
+├── lambda_function/
+│   └── helloword.py
+│
+├── main.tf
+├── variables.tf
+└── outputs.tf
 ```
 
-**Step 2:** Create your Python Lambda function. In `lambda-src/hello_world.py`:
+Now let's go through each file:
 
-```python
-def lambda_handler(event, context):
-    return {
-        'statusCode': 200,
-        'body': 'Hello, World!'
+1. `lambda_function/helloword.py`: This is a simple Python lambda function.
+    ```python
+    def lambda_handler(event, context):
+        print("Hello, World!")
+    ```
+
+2. `main.tf`: This file contains the main Terraform configuration.
+
+    ```markdown
+    provider "aws" {
+      region  = "us-west-2"
     }
-```
+    
+    data "aws_iam_policy_document" "s3_policy" {
+      statement {
+        actions   = ["s3:GetObject"]
+        resources = ["arn:aws:s3:::${aws_s3_bucket.bucket.bucket}/*"]
+      }
+    }
+    
+    resource "aws_lambda_function" "example" {
+      function_name    = "lambda_function_name"
+      s3_bucket        = aws_s3_bucket.bucket.bucket
+      s3_key           = "lambda_function_payload.zip"
+      role= aws_iam_role.role.arn
+      handler          = "helloworld.lambda_handler"
+      runtime          = "python3.8"
 
-**Step 3:** Create your Terraform configuration files.
+      depends_on = [
+        "aws_s3_bucket_object.object",
+      ]
+    }
 
-**a.** Variables file `variables.tf`
+    resource "aws_s3_bucket" "bucket" {
+      bucket = "bucket_name"
+      acl    = "private"
 
-```hcl
-variable "region" {
-  description = "AWS region"
-  default     = "us-west-2"
-}
+      tags = {
+        Name        = "My bucket"
+        Environment = "Dev"
+      }
 
-variable "bucket_name" {
-  description = "S3 bucket name"
-  default = "terraform-lambda-bucket"
-}
+      policy = data.aws_iam_policy_document.s3_policy.json
+    }
 
-variable "lambda_function_name" {
-  description = "Lambda function name"
-  default     = "terraform_lambda_hello_world"
-}
-```
+    data "archive_file" "example_zip" {
+      type        = "zip"
+      source_dir  = "lambda_function"
+      output_path = "lambda_function_payload.zip"
+    }
 
-**b.** Lambda file `lambda.tf`
+    resource "aws_s3_bucket_object" "object" {
+      bucket = "bucket_name"
+      key    = "lambda_function_payload.zip"
+      source = "lambda_function_payload.zip" 
 
-```hcl
-data "archive_file" "lambda_zip" {
-  type        = "zip"
-  source_file = "${path.module}/lambda-src/hello_world.py"
-  output_path = "${path.module}/lambda-src/hello_world.zip"
-}
+      depends_on = [
+        "data.archive_file.example_zip",
+      ]
+    }
 
-resource "aws_lambda_function" "lambda_function" {
-  filename      = "lambda-src/hello_world.zip"
-  function_name = var.lambda_function_name
-  role          = aws_iam_role.lambda_exec_role.arn
-  handler       = "hello_world.lambda_handler"
+    resource "aws_iam_role" "role" {
+      name = "lambda_s3_role"
 
-  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+      assume_role_policy = jsonencode({
+        Version = "2012-10-17",
+        Statement = [
+          {
+            Action = "sts:AssumeRole"
+            Effect = "Allow"
+            Principal = {
+              Service = "lambda.amazonaws.com"
+            }
+          },
+        ]
+      })
+    }
 
-  runtime = "python3.11"
-  
-  depends_on = [
-    aws_s3_bucket_object.lambda_zip
-  ]
-}
-```
+    resource "aws_iam_role_policy_attachment" "attach_s3_policy" {
+      role       = aws_iam_role.role.name
+      policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+    }
+    ```
 
-**c.** API Gateway file `api_gateway.tf`
+    Please replace `"bucket_name"` with your desired bucket name and `"lambda_function_name"` with your desired lambda function name.
 
-```hcl
-resource "aws_api_gateway_rest_api" "api" {
-  name        = "HelloWorldAPI"
-  description = "Hello World Rest API"
-}
+3. `variables.tf`: This file will define any variables we are going to use.
 
-resource "aws_api_gateway_integration" "lambda" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.proxy.id
-  http_method = aws_api_gateway_method.proxy.http_method
+    ```markdown
+    variable "region" {
+      description = "AWS region"
+      default     = "us-west-2"
+    }
+    ```
 
-  integration_http_method = "POST"
-  type                    = "AWS_PROXY"
-  uri                     = aws_lambda_function.lambda_function.invoke_arn
-}
+4. `outputs.tf`: This file will define any output we might require.
 
-resource "aws_api_gateway_deployment" "api_gateway_deployment" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  stage_name  = "test"
+    ```markdown
+    output "lambda_function_name" {
+      description = "The name of the Lambda Function"
+      value       = aws_lambda_function.example.function_name
+    }
 
-  depends_on = [
-    aws_api_gateway_integration.lambda,
-  ]
-}
-```
-**d.** S3 file `s3.tf`
-```hcl
-resource "aws_s3_bucket" "lambda_bucket" {
-  bucket = var.bucket_name
-  acl    = "private"
+    output "s3_bucket_id" {
+      description = "The ID of the S3 bucket"
+      value       = aws_s3_bucket.bucket.id
+    }
+    ```
 
-  versioning {
-    enabled = true
-  }
-}
+Once done,you can initialize Terraform with the following command:
 
-resource "aws_s3_bucket_object" "lambda_zip" {
-  bucket = aws_s3_bucket.lambda_bucket.id
-  key    = "lambda-src/hello_world.zip"
-  source = "lambda-src/hello_world.zip"
-  etag   = filemd5("lambda-src/hello_world.zip")
-}
-```
-**Step 4:** Run your Terraform code
-```bash# Initialize your Terraform workspace
+```markdown
 terraform init
+```
 
-# Plan and review your changes
-terraform plan
+This will set up the necessary providers for your project.
 
-# Apply your changes
+Next, you can apply your configuration with the following command:
+
+```markdown
 terraform apply
 ```
 
+This will prompt you to confirm that you want to create the resources defined in your `.tf` files. Confirm by typing `yes`. 
 
-**Step 5:** Test your function via the API Gateway that was created. First, you need to get the URL of your API Gateway. You can output this in `outputs.tf` file:
+When the command completes, you should see output similar to the following:
 
-```hcl
-output "invoke_url" {
-  value = "https://${aws_api_gateway_rest_api.api.id}.execute-api.${var.region}.amazonaws.com/test"
-}
-```
-Run `terraform apply` to get the `invoke_url`.
+```markdown
+Apply complete! Resources: 5 added, 0 changed, 0 destroyed.
 
-Then, you can test the function using curl:
+Outputs:
 
-```bash
-curl -X POST <Your API Gateway Invoke URL>
+lambda_function_name = "lambda_function_name"
+s3_bucket_id = "bucket_name"
 ```
 
-Replace `<Your API Gateway Invoke URL>` with your API Gateway URL.
+This output indicates that your Lambda function and S3 bucket were created successfully.
 
-This test should return: `{"statusCode":200, "body":"Hello, World!"}`.
+One thing to remember, you need to upload your Python code to the S3 bucket before referencing it in your Lambda function. The Terraform configuration provided above takes care of that by creating a `.zip` file of your code and uploading it to the S3 bucket before creating the Lambda function.
 
-**Note:** Please replace all the `<placeholders>` with your actual values. Make sure to replace the `region`, `bucket_name`, and `lambda_function_name` in the `variables.tf` file as per your requirements. Also, remember to zip your lambda function code and upload it to the S3 bucket.
+

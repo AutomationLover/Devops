@@ -43,12 +43,6 @@ resource "aws_s3_bucket" "bucket" {
   }
 }
 
-data "aws_iam_policy_document" "s3_policy" {
-  statement {
-  actions   = ["s3:GetObject"]
-    resources = ["arn:aws:s3:::${var.bucket_name}/*"]
-  }
-}
 
 resource "aws_lambda_function" "example" {
   function_name    = "lambda_function_name"

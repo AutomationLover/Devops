@@ -129,6 +129,7 @@ resource "aws_iam_role_policy_attachment" "attach_s3_policy" {
       value       = aws_s3_bucket.bucket.id
     }
     ```
+Make sure to replace `"my-unique-bucket-name"` in `variables.tf` with your desired unique bucket name and `"lambda_function_name"` in `main.tf` with your desired lambda function name. 
 
 Once done,you can initialize Terraform with the following command:
 

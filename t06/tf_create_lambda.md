@@ -16,91 +16,98 @@ terraform_lambda/
 
 Now let's go through each file:
 
-1. `lambda_function/helloword.py`: This is a simple Python lambda function.
+0. `lambda_function/helloword.py`: This is a simple Python lambda function.
     ```python
     def lambda_handler(event, context):
         print("Hello, World!")
     ```
 
-2. `main.tf`: This file contains the main Terraform configuration.
 
-    ```markdown
-    provider "aws" {
-      region  = "us-west-2"
-    }
-    
-    data "aws_iam_policy_document" "s3_policy" {
-      statement {
-        actions   = ["s3:GetObject"]
-        resources = ["arn:aws:s3:::${aws_s3_bucket.bucket.bucket}/*"]
-      }
-    }
-    
-    resource "aws_lambda_function" "example" {
-      function_name    = "lambda_function_name"
-      s3_bucket        = aws_s3_bucket.bucket.bucket
-      s3_key           = "lambda_function_payload.zip"
-      role= aws_iam_role.role.arn
-      handler          = "helloworld.lambda_handler"
-      runtime          = "python3.8"
+1. `variables.tf`: Add a new variable for the bucket name.
+```markdown
+variable "bucket_name" {
+  description = "S3 bucket name"
+  default     = "my-unique-bucket-name"
+}
+```
 
-      depends_on = [
-        "aws_s3_bucket_object.object",
-      ]
-    }
+2. `main.tf`: Use the variable in your S3 bucket and policy definition.
 
-    resource "aws_s3_bucket" "bucket" {
-      bucket = "bucket_name"
-      acl    = "private"
+Here is the updated `main.tf`:
 
-      tags = {
-        Name        = "My bucket"
-        Environment = "Dev"
-      }
+```markdown
+provider "aws" {
+  region  = "us-west-2"
+}
 
-      policy = data.aws_iam_policy_document.s3_policy.json
-    }
+resource "aws_s3_bucket" "bucket" {
+  bucket = var.bucket_name
+  acl    = "private"
 
-    data "archive_file" "example_zip" {
-      type        = "zip"
-      source_dir  = "lambda_function"
-      output_path = "lambda_function_payload.zip"
-    }
+  tags = {
+    Name        = "My bucket"
+    Environment = "Dev"
+  }
+}
 
-    resource "aws_s3_bucket_object" "object" {
-      bucket = "bucket_name"
-      key    = "lambda_function_payload.zip"
-      source = "lambda_function_payload.zip" 
+data "aws_iam_policy_document" "s3_policy" {
+  statement {
+  actions   = ["s3:GetObject"]
+    resources = ["arn:aws:s3:::${var.bucket_name}/*"]
+  }
+}
 
-      depends_on = [
-        "data.archive_file.example_zip",
-      ]
-    }
+resource "aws_lambda_function" "example" {
+  function_name    = "lambda_function_name"
+  s3_bucket        = aws_s3_bucket.bucket.bucket
+  s3_key           = "lambda_function_payload.zip"
+  handler          = "helloworld.lambda_handler"
+  runtime          = "python3.8"
+  role             = aws_iam_role.role.arn
 
-    resource "aws_iam_role" "role" {
-      name = "lambda_s3_role"
+  depends_on = [
+    aws_s3_bucket_object.object,
+  ]
+}
 
-      assume_role_policy = jsonencode({
-        Version = "2012-10-17",
-        Statement = [
-          {
-            Action = "sts:AssumeRole"
-            Effect = "Allow"
-            Principal = {
-              Service = "lambda.amazonaws.com"
-            }
-          },
-        ]
-      })
-    }
+data "archive_file" "example_zip" {
+  type        = "zip"
+  source_dir  = "lambda_function"
+  output_path = "lambda_function_payload.zip"
+}
 
-    resource "aws_iam_role_policy_attachment" "attach_s3_policy" {
-      role       = aws_iam_role.role.name
-      policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
-    }
-    ```
+resource "aws_s3_bucket_object" "object" {
+  bucket = aws_s3_bucket.bucket.bucket
+  key    = "lambda_function_payload.zip"
+  source = "lambda_function_payload.zip" 
 
-    Please replace `"bucket_name"` with your desired bucket name and `"lambda_function_name"` with your desired lambda function name.
+  depends_on = [
+    data.archive_file.example_zip,
+  ]
+}
+
+resource "aws_iam_role" "role" {
+  name = "lambda_s3_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "attach_s3_policy" {
+  role       = aws_iam_role.role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+}
+```
 
 3. `variables.tf`: This file will define any variables we are going to use.
 

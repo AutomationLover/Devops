@@ -53,6 +53,10 @@ details.
 ```bash
 aws configure
 ```
+Check the setting by
+```bash
+aws sts get-caller-identity
+```
 2. Enter your AWS Access Key ID and Secret Access Key that you saved from Step 2.
 
 3. Specify `json` as the default output format (or another if preferred).

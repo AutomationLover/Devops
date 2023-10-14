@@ -23,7 +23,7 @@ Using AWS root account for day-to-day interactions is not recommended due to the
 10. **Use Temporary Security Credentials**: Temporary security credentials are preferable to long-term access keys. Temporary credentials can be configured to expire after a certain period of time.
 
 Remember, securing your AWS account is a continuous process that involves regular review and applying the necessary updates and patches.
-TryUB3st!
+
 
 
 A step-by-step guide on how to set up IAM users and groups using the AWS Management Console:

@@ -1,5 +1,3 @@
-https://www.udemy.com/course/kubernetesmastery/learn/lecture/17070896#overview
-https://kubernetes.io/docs/reference/#api-reference
 
 # Basic kubectl
 ## kubectl get

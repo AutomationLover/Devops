@@ -4,10 +4,15 @@ https://kubernetes.io/docs/reference/#api-reference
 # Basic kubectl
 ## kubectl get
 kubectl get nodes
+
 kubectl get nodes -o wide
+
 kubectl get nodes -o yaml
+
 kubectl get nodes -o json
+
 kubectl get nodes -o json | jq ".items[] | {name:.metadata.name} + .status.capacity"
+
 - `| jq`: This is a pipe to the `jq` command, which will process the JSON output from the previous command.
 
 - `".items[] | {name:.metadata.name} + .status.capacity"`: This is the `jq` filter that processes the JSON.
@@ -22,6 +27,7 @@ Here's what the filter does:
 
 ## kubectl describe
 kubectl describe node/<node>
+
 kubectl describe node <node>
 
 ## kubectl api-resource

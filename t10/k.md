@@ -237,3 +237,146 @@ pingpong-6d6ff8754d-dzgp7 alpine 2023-10-21T15:32:31.656836708+11:00 64 bytes fr
 
 
 
+
+### watch the process
+#### window one
+```
+% kubectl create deploy web --image=nginx --replicas=3
+deployment.apps/web created
+```
+
+#### Window two
+```
+% kubectl get pods -w
+NAME                  READY   STATUS    RESTARTS   AGE
+web-844f65fb5-8pdtw   1/1     Running   0          3h2m
+web-844f65fb5-mp5mp   1/1     Running   0          3h2m
+web-844f65fb5-z7dqh   1/1     Running   0          3h2m
+web-844f65fb5-h6p7r   0/1     Pending   0          0s
+web-844f65fb5-2knwg   0/1     Pending   0          0s
+web-844f65fb5-h6p7r   0/1     Pending   0          0s
+web-844f65fb5-2knwg   0/1     Pending   0          0s
+web-844f65fb5-h6p7r   0/1     ContainerCreating   0          0s
+web-844f65fb5-2knwg   0/1     ContainerCreating   0          0s
+web-844f65fb5-h6p7r   1/1     Running             0          4s
+web-844f65fb5-2knwg   1/1     Running             0          6s
+```
+#### Window 3
+```
+% watch kubectl get pods
+Every 2.0s: kubectl...  devops.lan: Sat Oct 21 18:51:12 2023
+
+NAME                  READY   STATUS    RESTARTS   AGE
+web-844f65fb5-2knwg   1/1     Running   0          76s
+web-844f65fb5-8pdtw   1/1     Running   0          3h5m
+web-844f65fb5-h6p7r   1/1     Running   0          76s
+web-844f65fb5-mp5mp   1/1     Running   0          3h5m
+web-844f65fb5-z7dqh   1/1     Running   0          3h5m
+```
+
+## service Layer4
+It's the pods that need to receive traffic. So, really what's happening is in IP tables, on our nodes, we're creating rules via the kube-proxy agent. It's going to direct traffic to the pods in a round robin fashion, by default, on Port 8888.
+It's using the deployment as a selector for deciding which pods need to be inside this service.
+That's why we're using the deployment here.
+
+In a namespace, you can have the same name for different resource types, but you can't have a name collision of the combination of the resource type and the name of the resource.
+
+IMPORTANT
+Services are a Layer 4 concept (IP, protocal TCP/UDP, port).
+Implementation of kube-proxy
+
+## CoreDNS
+https://coredns.io/
+One of the jobs for a Service resource is to create the DNS name for the Service IP, which then makes something like httpenv resolvable on the Pod networks.
+If you are using Docker Desktop or minikube, DNS is running out-of-the-box. All done :)
+
+Apply vs Create + Edit
+
+
+# Yaml file
+
+## generate the yaml
+```
+% kubectl create deploy web --image nginx -o yaml --dry-run
+% kubectl create namespace goodapp -o yaml --dry-run
+
+```
+
+## Start with hard
+4 Parts
+- apiVersion: v1
+- kind: Namespace
+- metadata:
+- spec: {}
+
+Find kind
+```
+kubectl api-resources
+NAME                              SHORTNAMES   APIVERSION                             NAMESPACED   KIND
+bindings                                       v1                                     true         Binding
+componentstatuses                 cs           v1                                     false        ComponentStatus
+
+```
+
+Find apiVersion
+```
+% kubectl api-versions
+admissionregistration.k8s.io/v1
+apiextensions.k8s.io/v1
+
+```
+
+Find spec
+
+```
+williamwang@Devops ~ % kubectl explain pod
+…
+  spec	<PodSpec>
+    Specification of the desired behavior of the pod. More info:
+    https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
+…
+
+% kubectl explain pod.spec
+…
+
+  volumes	<[]Volume>
+    List of volumes that can be mounted by containers belonging to the pod. More
+    info: https://kubernetes.io/docs/concepts/storage/volumes
+…
+% kubectl explain pod.spec.volumes
+
+kubectl explain pod.spec --recursive
+
+```
+
+## kubectl diff
+```
+% kubectl run my-pod --image=nginx -o yaml --dry-run=client
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: my-pod
+  name: my-pod
+spec:
+  containers:
+  - image: nginx
+    name: my-pod
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+ % kubectl run my-pod --image=nginx -o yaml --dry-run=client > mypod.yaml
+
+kubectl apply -f mypod.yaml
+
+vim mypod.yaml
+Update to   - image: nginx:1.17
+
+
+% kubectl diff -f mypod.yaml
+
+```
+
